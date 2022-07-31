@@ -116,6 +116,9 @@ static uint16_t displayWidth, displayHeight;
 #define SCREEN_TRANSITION_MSECS 300
 #endif
 
+/// Convert an integer GPS coords to a floating point
+#define DegD(i) (i * 1e-7)
+
 /**
  * Draw the icon with extra info printed around the corners
  */
@@ -520,6 +523,80 @@ static void drawGPSAltitude(OLEDDisplay *display, int16_t x, int16_t y, const GP
     }
 }
 
+const int32_t BRC_LATI= (40.787030 * 1e7);
+const int32_t BRC_LONI = (-119.202740 * 1e7);
+const double BRC_LATF = 40.787030;
+const double BRC_LONF = -119.202740;
+const double BRC_NOON = 1.5;
+const double RAD_TO_HOUR = (6.0/3.14159);
+const double METER_TO_FEET = 3.28084;
+
+static char* BRCAddress(int32_t lat, int32_t lon)
+{
+    static char addrStr[20];
+
+    float bearingToMan =
+                GeoCoord::bearing(BRC_LATF, BRC_LONF, DegD(lat), DegD(lon)) * RAD_TO_HOUR;
+    bearingToMan += 12.0 - BRC_NOON;
+    while (bearingToMan > 12.0) {bearingToMan -= 12.0;}
+    uint8_t hour = (uint8_t)(bearingToMan);
+    uint8_t minute = (uint8_t)((bearingToMan - hour) * 60.0);
+    hour %= 12;
+    if (hour == 0) {hour = 12;}
+
+    float d =
+                GeoCoord::latLongToMeter(BRC_LATF, BRC_LONF, DegD(lat), DegD(lon)) * METER_TO_FEET;
+
+    if (bearingToMan > 1.75  && bearingToMan < 10.25) {
+        const char* street = NULL;
+        for (auto&& m : {
+                        std::tuple<const float, const char*>{2500-50, "Esp"}, // Esp's center is 2500ft  from man, start showing Esp 50ft from center of street.
+                        std::tuple<const float, const char*>{2940-220, "A"}, // Streets are 40ft wide; ESP to A is 400ft
+                        std::tuple<const float, const char*>{2940+290-145, "B"}, // A->B is 250ft
+                        std::tuple<const float, const char*>{2940+290*2-145, "C"},
+                        std::tuple<const float, const char*>{2940+290*3-145, "D"},
+                        std::tuple<const float, const char*>{2940+290*4-145, "E"},
+                        std::tuple<const float, const char*>{2940+290*4+490-245, "F"}, // E->F is 450ft
+                        std::tuple<const float, const char*>{2940+290*5+490-145, "G"},
+                        std::tuple<const float, const char*>{2940+290*6+490-145, "H"},
+                        std::tuple<const float, const char*>{2940+290*7+490-145, "I"},
+                        std::tuple<const float, const char*>{2940+290*7+490+190-95, "J"}, // I-J & J-K are 150ft
+                        std::tuple<const float, const char*>{2940+290*7+490+190*2-95, "K"},
+                        std::tuple<const float, const char*>{2940+290*7+490+190*2+75, 0} }) {
+            float r = std::get<0>(m);
+            if (d > r) {
+                street = std::get<1>(m);
+            } else {
+                break;
+            }
+        }
+        if (street) {
+            snprintf(addrStr, sizeof(addrStr), "%d:%02d & %s", hour, minute, street);
+            return addrStr;
+        }
+
+    }
+
+    snprintf(addrStr, sizeof(addrStr), "%d:%02d & %dft", hour, minute, (uint32_t)d);
+    return addrStr;
+}
+
+
+static void drawBRCAddress(OLEDDisplay *display, int16_t x, int16_t y, const GPSStatus *gps)
+{
+    if (!gps->getIsConnected() && !config.position.fixed_position) {
+        // displayLine = "No GPS Module";
+        // display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(displayLine))) / 2, y, displayLine);
+    } else if (!gps->getHasLock() && !config.position.fixed_position) {
+        // displayLine = "No GPS Lock";
+        // display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(displayLine))) / 2, y, displayLine);
+    } else {
+        auto displayLine = BRCAddress(int32_t(gps->getLatitude()), int32_t(gps->getLongitude()));
+        display->drawString(x + (SCREEN_WIDTH - (display->getStringWidth(displayLine))) / 2, y, displayLine);
+    }
+}
+
+
 // Draw GPS status coordinates
 static void drawGPScoordinates(OLEDDisplay *display, int16_t x, int16_t y, const GPSStatus *gps)
 {
@@ -699,9 +776,6 @@ static void drawCompassHeading(OLEDDisplay *display, int16_t compassX, int16_t c
     drawLine(display, N1, N4);
 }
 
-/// Convert an integer GPS coords to a floating point
-#define DegD(i) (i * 1e-7)
-
 static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
 {
     // We only advance our nodeIndex if the frame # has changed - because
@@ -728,8 +802,9 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
 
     const char *username = node->has_user ? node->user.long_name : "Unknown Name";
 
-    static char signalStr[20];
-    snprintf(signalStr, sizeof(signalStr), "Signal: %d%%", clamp((int)((node->snr + 10) * 5), 0, 100));
+    static char signalStrX[20];
+    snprintf(signalStrX, sizeof(signalStrX), "Signal: %d%%", clamp((int)((node->snr + 10) * 5), 0, 100));
+    char *signalStr = signalStrX;
 
     uint32_t agoSecs = sinceLastSeen(node);
     static char lastStr[20];
@@ -748,6 +823,30 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
         } else {
             snprintf(lastStr, sizeof(lastStr), "unknown age");
         }
+    }
+    if (hasPosition(node)) {
+        Position &p = node->position;
+        signalStr = BRCAddress(p.latitude_i, p.longitude_i);
+        auto sig = clamp((int)((node->snr + 10) * 5), 0, 100);
+
+        if (agoSecs < 120) // last 2 mins?
+            snprintf(lastStr, sizeof(lastStr), "%d%% %us ago", sig, agoSecs);
+        else if (agoSecs < 120 * 60) // last 2 hrs
+            snprintf(lastStr, sizeof(lastStr), "%d%% %um ago", sig, agoSecs / 60);
+        else {
+
+            uint32_t hours_in_month = 730;
+
+            // Only show hours ago if it's been less than 6 months. Otherwise, we may have bad
+            //   data.
+            if ((agoSecs / 60 / 60) < (hours_in_month * 6)) {
+                snprintf(lastStr, sizeof(lastStr), "%d%% %uh ago", sig, agoSecs / 60 / 60);
+            } else {
+                snprintf(lastStr, sizeof(lastStr), "%d%% ??? ago", sig);
+            }
+        }
+    } else {
+
     }
 
     static char distStr[20];
@@ -1575,6 +1674,7 @@ void DebugInfo::drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *stat
         // hms += tz.tz_dsttime * SEC_PER_HOUR;
         // hms -= tz.tz_minuteswest * SEC_PER_MIN;
         // mod `hms` to ensure in positive range of [0...SEC_PER_DAY)
+        hms += SEC_PER_DAY - 7 * SEC_PER_HOUR;
         hms = (hms + SEC_PER_DAY) % SEC_PER_DAY;
 
         // Tear apart hms into h:m:s
@@ -1597,7 +1697,7 @@ void DebugInfo::drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *stat
     // Line 3
     if (config.display.gps_format !=
         Config_DisplayConfig_GpsCoordinateFormat_GpsFormatDMS) // if DMS then don't draw altitude
-        drawGPSAltitude(display, x, y + FONT_HEIGHT_SMALL * 2, gpsStatus);
+        drawBRCAddress(display, x, y + FONT_HEIGHT_SMALL * 2, gpsStatus);
 
     // Line 4
     drawGPScoordinates(display, x, y + FONT_HEIGHT_SMALL * 3, gpsStatus);
