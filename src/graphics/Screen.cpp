@@ -549,29 +549,32 @@ static char* BRCAddress(int32_t lat, int32_t lon)
 
     if (bearingToMan > 1.75  && bearingToMan < 10.25) {
         const char* street = NULL;
+        float dist = 0;
         for (auto&& m : {
-                        std::tuple<const float, const char*>{2500-50, "Esp"}, // Esp's center is 2500ft  from man, start showing Esp 50ft from center of street.
-                        std::tuple<const float, const char*>{2940-220, "A"}, // Streets are 40ft wide; ESP to A is 400ft
-                        std::tuple<const float, const char*>{2940+290-145, "B"}, // A->B is 250ft
-                        std::tuple<const float, const char*>{2940+290*2-145, "C"},
-                        std::tuple<const float, const char*>{2940+290*3-145, "D"},
-                        std::tuple<const float, const char*>{2940+290*4-145, "E"},
-                        std::tuple<const float, const char*>{2940+290*4+490-245, "F"}, // E->F is 450ft
-                        std::tuple<const float, const char*>{2940+290*5+490-145, "G"},
-                        std::tuple<const float, const char*>{2940+290*6+490-145, "H"},
-                        std::tuple<const float, const char*>{2940+290*7+490-145, "I"},
-                        std::tuple<const float, const char*>{2940+290*7+490+190-95, "J"}, // I-J & J-K are 150ft
-                        std::tuple<const float, const char*>{2940+290*7+490+190*2-95, "K"},
-                        std::tuple<const float, const char*>{2940+290*7+490+190*2+75, 0} }) {
-            float r = std::get<0>(m);
-            if (d > r) {
-                street = std::get<1>(m);
+                        std::tuple<const float, const float, const char*>{2500,50, "Esp"}, // Esp's center is 2500ft  from man, start showing Esp 50ft from center of street.
+                        std::tuple<const float, const float, const char*>{2940,220, "A"}, // Streets are 40ft wide; ESP to A is 400ft
+                        std::tuple<const float, const float, const char*>{2940+290,145, "B"}, // A->B is 250ft
+                        std::tuple<const float, const float, const char*>{2940+290*2,145, "C"},
+                        std::tuple<const float, const float, const char*>{2940+290*3,145, "D"},
+                        std::tuple<const float, const float, const char*>{2940+290*4,145, "E"},
+                        std::tuple<const float, const float, const char*>{2940+290*4+490,245, "F"}, // E->F is 450ft
+                        std::tuple<const float, const float, const char*>{2940+290*5+490,145, "G"},
+                        std::tuple<const float, const float, const char*>{2940+290*6+490,145, "H"},
+                        std::tuple<const float, const float, const char*>{2940+290*7+490,145, "I"},
+                        std::tuple<const float, const float, const char*>{2940+290*7+490+190,95, "J"}, // I-J & J-K are 150ft
+                        std::tuple<const float, const float, const char*>{2940+290*7+490+190*2,95, "K"},
+                        std::tuple<const float, const float, const char*>{2940+290*7+490+190*2+75,0, 0} }) {
+            float c = std::get<0>(m);
+            float w = std::get<1>(m);
+            if (d > c-w) {
+                street = std::get<2>(m);
+                dist = d -c;
             } else {
                 break;
             }
         }
         if (street) {
-            snprintf(addrStr, sizeof(addrStr), "%d:%02d & %s", hour, minute, street);
+            snprintf(addrStr, sizeof(addrStr), "%d:%02d & %s %dft", hour, minute, street, int(dist));
             return addrStr;
         }
 
