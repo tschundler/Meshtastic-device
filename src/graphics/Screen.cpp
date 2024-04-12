@@ -514,11 +514,16 @@ const double BRC_LATF = 40.786400;
 const double BRC_LONF = -119.203500;
 const double BRC_NOON = 1.5;
 const double RAD_TO_HOUR = (6.0/3.14159);
-const double METER_TO_FEET = 3.28084;
 
 static char* BRCAddress(int32_t lat, int32_t lon)
 {
     static char addrStr[20];
+    double unitMultiplier = 1;
+    const char* unit = "m";
+    if (config.display.units == meshtastic_Config_DisplayConfig_DisplayUnits_IMPERIAL) {
+        unitMultiplier = 3.28084;
+        unit = "ft";
+    }
 
     float bearingToMan =
                 GeoCoord::bearing(BRC_LATF, BRC_LONF, DegD(lat), DegD(lon)) * RAD_TO_HOUR;
@@ -530,7 +535,7 @@ static char* BRCAddress(int32_t lat, int32_t lon)
     if (hour == 0) {hour = 12;}
 
     float d =
-                GeoCoord::latLongToMeter(BRC_LATF, BRC_LONF, DegD(lat), DegD(lon)) * METER_TO_FEET;
+                GeoCoord::latLongToMeter(BRC_LATF, BRC_LONF, DegD(lat), DegD(lon)) * unitMultiplier;
 
     if (bearingToMan > 1.75  && bearingToMan < 10.25) {
         const char* street = NULL;
@@ -559,13 +564,13 @@ static char* BRCAddress(int32_t lat, int32_t lon)
             }
         }
         if (street) {
-            snprintf(addrStr, sizeof(addrStr), "%d:%02d & %s %dft", hour, minute, street, int(dist));
+            snprintf(addrStr, sizeof(addrStr), "%d:%02d & %s %d%s", hour, minute, street, int(dist), unit);
             return addrStr;
         }
 
     }
 
-    snprintf(addrStr, sizeof(addrStr), "%d:%02d & %dft", hour, minute, (uint32_t)d);
+    snprintf(addrStr, sizeof(addrStr), "%d:%02d & %d%s", hour, minute, (uint32_t)d, unit);
     return addrStr;
 }
 
