@@ -18,6 +18,7 @@ static char* BRCAddress(int32_t lat, int32_t lon)
 {
     static char addrStr[20];
 
+<<<<<<< HEAD
     double unitMultiplier = 1.0 / METER_TO_FEET;
     const char* unit = "m";
     if (config.display.units == meshtastic_Config_DisplayConfig_DisplayUnits_IMPERIAL) {
@@ -25,6 +26,8 @@ static char* BRCAddress(int32_t lat, int32_t lon)
         unit = "ft";
     }
 
+=======
+>>>>>>> a620e3113 (BRC 2024 Golden Spike Data)
     float bearingToMan =
                 GeoCoord::bearing(BRC_LATF, BRC_LONF, DegD(lat), DegD(lon)) * RAD_TO_HOUR;
     bearingToMan += 12.0 - BRC_NOON;
@@ -34,7 +37,10 @@ static char* BRCAddress(int32_t lat, int32_t lon)
     hour %= 12;
     if (hour == 0) {hour = 12;}
 
+<<<<<<< HEAD
     // In imperial units because that is how golden spike data is provided.
+=======
+>>>>>>> a620e3113 (BRC 2024 Golden Spike Data)
     float d =
                 GeoCoord::latLongToMeter(BRC_LATF, BRC_LONF, DegD(lat), DegD(lon)) * METER_TO_FEET;
 
@@ -66,13 +72,21 @@ static char* BRCAddress(int32_t lat, int32_t lon)
             }
         }
         if (street) {
+<<<<<<< HEAD
             snprintf(addrStr, sizeof(addrStr), "%d:%02d & %s %d%s", hour, minute, street, int(dist * unitMultiplier), unit);
+=======
+            snprintf(addrStr, sizeof(addrStr), "%d:%02d & %s %dft", hour, minute, street, int(dist));
+>>>>>>> a620e3113 (BRC 2024 Golden Spike Data)
             return addrStr;
         }
 
     }
 
+<<<<<<< HEAD
     snprintf(addrStr, sizeof(addrStr), "%d:%02d & %d%s", hour, minute, int(d * unitMultiplier), unit);
+=======
+    snprintf(addrStr, sizeof(addrStr), "%d:%02d & %dft", hour, minute, (uint32_t)d);
+>>>>>>> a620e3113 (BRC 2024 Golden Spike Data)
     return addrStr;
 }
 
