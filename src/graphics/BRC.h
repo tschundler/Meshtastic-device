@@ -6,10 +6,10 @@
 
 using namespace meshtastic;
 
-const int32_t BRC_LATI= (40.786969 * 1e7);
-const int32_t BRC_LONI = (-119.204101 * 1e7);
-const double BRC_LATF = 40.786969;
-const double BRC_LONF = -119.204101;
+const int32_t BRC_LATI= (40.786958 * 1e7);
+const int32_t BRC_LONI = (-119.202994 * 1e7);
+const double BRC_LATF = 40.786958;
+const double BRC_LONF = -119.202994;
 const double BRC_NOON = 1.5;
 const double RAD_TO_HOUR = (6.0/3.14159);
 const double METER_TO_FEET = 3.28084;
@@ -18,16 +18,6 @@ static char* BRCAddress(int32_t lat, int32_t lon)
 {
     static char addrStr[20];
 
-<<<<<<< HEAD
-    double unitMultiplier = 1.0 / METER_TO_FEET;
-    const char* unit = "m";
-    if (config.display.units == meshtastic_Config_DisplayConfig_DisplayUnits_IMPERIAL) {
-        unitMultiplier = 1.0;
-        unit = "ft";
-    }
-
-=======
->>>>>>> a620e3113 (BRC 2024 Golden Spike Data)
     float bearingToMan =
                 GeoCoord::bearing(BRC_LATF, BRC_LONF, DegD(lat), DegD(lon)) * RAD_TO_HOUR;
     bearingToMan += 12.0 - BRC_NOON;
@@ -37,10 +27,6 @@ static char* BRCAddress(int32_t lat, int32_t lon)
     hour %= 12;
     if (hour == 0) {hour = 12;}
 
-<<<<<<< HEAD
-    // In imperial units because that is how golden spike data is provided.
-=======
->>>>>>> a620e3113 (BRC 2024 Golden Spike Data)
     float d =
                 GeoCoord::latLongToMeter(BRC_LATF, BRC_LONF, DegD(lat), DegD(lon)) * METER_TO_FEET;
 
@@ -72,21 +58,13 @@ static char* BRCAddress(int32_t lat, int32_t lon)
             }
         }
         if (street) {
-<<<<<<< HEAD
-            snprintf(addrStr, sizeof(addrStr), "%d:%02d & %s %d%s", hour, minute, street, int(dist * unitMultiplier), unit);
-=======
             snprintf(addrStr, sizeof(addrStr), "%d:%02d & %s %dft", hour, minute, street, int(dist));
->>>>>>> a620e3113 (BRC 2024 Golden Spike Data)
             return addrStr;
         }
 
     }
 
-<<<<<<< HEAD
-    snprintf(addrStr, sizeof(addrStr), "%d:%02d & %d%s", hour, minute, int(d * unitMultiplier), unit);
-=======
     snprintf(addrStr, sizeof(addrStr), "%d:%02d & %dft", hour, minute, (uint32_t)d);
->>>>>>> a620e3113 (BRC 2024 Golden Spike Data)
     return addrStr;
 }
 

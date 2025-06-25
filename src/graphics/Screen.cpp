@@ -1344,7 +1344,7 @@ void Screen::getTimeAgoStr(uint32_t agoSecs, char *timeStr, uint8_t maxLength)
     // -- if using time delta instead --
     else if (agoSecs < 120 * 60) // last 2 hrs
         snprintf(timeStr, maxLength, "%u minutes ago", agoSecs / 60);
-    // Only show hours ago if it's been less than half month. Otherwise, we may have bad data.
+    // Only show hours ago if it's been less than half a month. Otherwise, we may have bad data.
     else if ((agoSecs / 60 / 60) < (hours_in_month / 2))
         snprintf(timeStr, maxLength, "%u hours ago", agoSecs / 60 / 60);
     else
@@ -1453,7 +1453,9 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
     }
     meshtastic_NodeInfoLite *ourNode = nodeDB->getMeshNode(nodeDB->getNodeNum());
     const char *fields[] = {username, lastStr, signalStr, distStr, NULL, NULL};
-    if (node && hasValidPosition(node)) {
+
+
+    if (node && nodeDB->hasValidPosition(node)) {
         meshtastic_PositionLite &p = node->position;
         // Overwrite the signal strength with the BRC position if screen is small
         if ((SCREEN_HEIGHT / FONT_HEIGHT_SMALL) < 6) {
@@ -1463,6 +1465,7 @@ static void drawNodeInfo(OLEDDisplay *display, OLEDDisplayUiState *state, int16_
             fields[3] = BRCAddress(p.latitude_i, p.longitude_i);
         }
     }
+    
     int16_t compassX = 0, compassY = 0;
     uint16_t compassDiam = Screen::getCompassDiam(SCREEN_WIDTH, SCREEN_HEIGHT);
 
@@ -2730,12 +2733,7 @@ void DebugInfo::drawFrameSettings(OLEDDisplay *display, OLEDDisplayUiState *stat
 #if HAS_GPS
     if (config.position.gps_mode == meshtastic_Config_PositionConfig_GpsMode_ENABLED) {
         // Line 3
-        // if (config.display.gps_format !=
-        //     meshtastic_Config_DisplayConfig_GpsCoordinateFormat_DMS) // if DMS then don't draw altitude
-        //     drawGPSAltitude(display, x, y + FONT_HEIGHT_SMALL * 2, gpsStatus);
         drawBRCAddress(display, x, y + FONT_HEIGHT_SMALL * 2, gpsStatus);
-
-
         // Line 4
         drawGPScoordinates(display, x, y + FONT_HEIGHT_SMALL * 3, gpsStatus);
     } else {
