@@ -3,6 +3,7 @@
 #include "GPSStatus.h"
 #include "gps/GeoCoord.h"
 #include "graphics/Screen.h"
+#include "configuration.h"
 
 using namespace meshtastic;
 
@@ -63,7 +64,7 @@ static char* BRCAddress(int32_t lat, int32_t lon)
         double lonD = DegD(lon);
         
         cachedBearing = GeoCoord::bearing(BRC_LATF, BRC_LONF, latD, lonD) * RAD_TO_HOUR;
-        cachedDistance = GeoCoord::latLongToMeter(BRC_LATF, BRC_LONF, latD, lonD) * METER_TO_FEET;
+        cachedDistance = GeoCoord::latLongToMeter(BRC_LATF, BRC_LONF, latD, lonD);
         
         cachedLat = lat;
         cachedLon = lon;
@@ -80,11 +81,16 @@ static char* BRCAddress(int32_t lat, int32_t lon)
     if (hour == 0) {hour = 12;}
 
     float d = cachedDistance;
+    
+    // Check unit preference once and set conversion factor and label
+    const bool useImperial = (config.display.units == meshtastic_Config_DisplayConfig_DisplayUnits_IMPERIAL);
+    const float conversionFactor = useImperial ? METER_TO_FEET : 1.0f;
+    const char* unitLabel = useImperial ? "ft" : "m";
 
     if (bearingToMan > 1.75  && bearingToMan < 10.25) {
         const char* street = nullptr;
         float dist = 0;
-        // Find the appropriate street based on distance
+        // Find the appropriate street based on distance (using original meter values for street matching)
         for (const auto& s : streets) {
             if (d > s.center - s.width) {
                 street = s.name;
@@ -94,13 +100,13 @@ static char* BRCAddress(int32_t lat, int32_t lon)
             }
         }
         if (street) {
-            snprintf(addrStr, sizeof(addrStr), "%d:%02d & %s %dft", hour, minute, street, int(dist));
+            snprintf(addrStr, sizeof(addrStr), "%d:%02d & %s %d%s", hour, minute, street, int(dist * conversionFactor), unitLabel);
             return addrStr;
         }
 
     }
 
-    snprintf(addrStr, sizeof(addrStr), "%d:%02d & %dft", hour, minute, (uint32_t)d);
+    snprintf(addrStr, sizeof(addrStr), "%d:%02d & %d%s", hour, minute, (uint32_t)(d * conversionFactor), unitLabel);
     return addrStr;
 }
 
