@@ -916,12 +916,13 @@ void Screen::setFrames(FrameFocus focus)
     fsi.positions.nodelist_distance = numframes;
     normalFrames[numframes++] = graphics::NodeListRenderer::drawDistanceScreen;
     indicatorIcons.push_back(icon_distance);
-
+#endif
+#if HAS_GPS
     fsi.positions.nodelist_bearings = numframes;
     normalFrames[numframes++] = graphics::NodeListRenderer::drawNodeListWithCompasses;
     indicatorIcons.push_back(icon_list);
-#endif
-#if HAS_GPS
+
+    // adding new BRC page 
     fsi.positions.nodelist_brc = numframes;
     normalFrames[numframes++] = graphics::NodeListRenderer::drawBRCList;
     indicatorIcons.push_back(icon_bm);
